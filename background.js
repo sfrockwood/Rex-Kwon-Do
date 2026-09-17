@@ -37,40 +37,51 @@ function getTimeLimit(url) {
   return settings.websites[hostname] || settings.defaultTime;
 }
 
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  await loadSettings();
+chrome.tabs.onActivated.addListener((activeInfo) => {
   const tabId = activeInfo.tabId;
-  chrome.tabs.get(tabId, async (tab) => {
-    if (isBlockedWebsite(tab.url)) {
-      const shouldBlock = await checkIfShouldBlock(tab.url);
-      if (shouldBlock.block) {
-        console.log('Background: Site should be immediately blocked');
-        chrome.tabs.sendMessage(tabId, { action: 'block' });
-      } else {
-        console.log('Background: Starting normal timer');
-        startTimer(tabId, tab.url);
-        // Tell content script to start timer display
-        chrome.tabs.sendMessage(tabId, { action: 'startTimer' });
-      }
-    }
+  chrome.tabs.get(tabId, (tab) => {
+    if (tab.url) handleTabVisit(tabId, tab.url);
   });
 });
 
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && isBlockedWebsite(tab.url)) {
-    await loadSettings();
-    const shouldBlock = await checkIfShouldBlock(tab.url);
-    if (shouldBlock.block) {
-      console.log('Background: Site should be immediately blocked');
-      chrome.tabs.sendMessage(tabId, { action: 'block' });
-    } else {
-      console.log('Background: Starting normal timer');
-      startTimer(tabId, tab.url);
-      // Tell content script to start timer display
-      chrome.tabs.sendMessage(tabId, { action: 'startTimer' });
-    }
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url) {
+    handleTabVisit(tabId, tab.url);
   }
 });
+
+async function handleTabVisit(tabId, url) {
+  if (!isBlockedWebsite(url)) return;
+  await loadSettings();
+
+  const hostname = new URL(url).hostname.replace(/^www\./, '');
+  const oneoffKey = `oneoff_${hostname}`;
+
+  try {
+    const oneoffResult = await chrome.storage.session.get([oneoffKey]);
+    if (oneoffResult[oneoffKey]) {
+      const { duration } = oneoffResult[oneoffKey];
+      await chrome.storage.session.remove([oneoffKey]);
+      console.log(`Background: One-off session for ${hostname}, duration: ${duration}s`);
+      startTimer(tabId, url, duration, true);
+      chrome.tabs.sendMessage(tabId, { action: 'startTimer', duration }, () => { chrome.runtime.lastError; });
+      return;
+    }
+  } catch (error) {
+    console.error('Background: Error checking one-off session:', error);
+  }
+
+  const shouldBlock = await checkIfShouldBlock(url);
+  if (shouldBlock.block) {
+    console.log('Background: Site should be immediately blocked');
+    chrome.tabs.sendMessage(tabId, { action: 'block' }, () => { chrome.runtime.lastError; });
+  } else {
+    console.log('Background: Starting normal timer');
+    const timeLimit = getTimeLimit(url);
+    startTimer(tabId, url);
+    chrome.tabs.sendMessage(tabId, { action: 'startTimer', duration: timeLimit }, () => { chrome.runtime.lastError; });
+  }
+}
 
 async function checkIfShouldBlock(url) {
   const siteName = new URL(url).hostname;
@@ -101,16 +112,16 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   cleanupTab(tabId);
 });
 
-function startTimer(tabId, url) {
+function startTimer(tabId, url, customDuration = null, isOneoff = false) {
   if (blockedTabs[tabId] || tabTimers[tabId]) return;
-  
-  const timeLimit = getTimeLimit(url) * 1000; // Convert to milliseconds
-  console.log(`Background: Starting timer for tab ${tabId}, time limit: ${timeLimit}ms`);
-  
+
+  const timeLimit = (customDuration !== null ? customDuration : getTimeLimit(url)) * 1000;
+  console.log(`Background: Starting timer for tab ${tabId}, time limit: ${timeLimit}ms, isOneoff: ${isOneoff}`);
+
   tabTimers[tabId] = setTimeout(() => {
     console.log(`Background: Timer expired for tab ${tabId}, sending block message`);
     blockedTabs[tabId] = true;
-    chrome.tabs.sendMessage(tabId, { action: 'block' }, (response) => {
+    chrome.tabs.sendMessage(tabId, { action: 'block', isOneoff }, (response) => {
       if (chrome.runtime.lastError) {
         console.log('Background: Error sending block message:', chrome.runtime.lastError);
       } else {

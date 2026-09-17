@@ -1,3 +1,46 @@
+// ── THEME ──────────────────────────────────────────────────────────────
+// Change ACTIVE_THEME to 'karate' to switch visual styles.
+const ACTIVE_THEME = 'karate';
+
+const THEMES = {
+  americana: {
+    icon: '🦅',
+    blockTitle: 'FOCUS BROKEN',
+    lockoutTitle: 'STAND DOWN',
+    tagline: 'Honor the break. Come back stronger.',
+    quote: '"Bow to your sensei."',
+    bg: '#080c1a', gold: '#f0a500', red: '#c0152a', blue: '#1a3a6e', text: '#f0ece0',
+    timerGlow: '0 0 0 1px #f0a500, 0 2px 12px rgba(192, 21, 42, 0.5)',
+    overlayBg: '#080c1a',
+    blockTitleColor: '#f0a500', blockTitleShadow: '3px 3px 0 #c0152a',
+    lockoutTitleColor: '#c0152a', lockoutTitleShadow: '3px 3px 0 #f0a500',
+    noUnblockColor: '#c0152a',
+    unblockBg: '#1a3a6e', unblockText: '#f0a500', unblockBorder: '#f0a500',
+    overlayTopAccent: `<div style="position:absolute;top:0;left:0;width:100%;height:10px;background:repeating-linear-gradient(90deg,#c0152a 0px,#c0152a 24px,#f0ece0 24px,#f0ece0 48px,#1a3a6e 48px,#1a3a6e 72px);"></div>`,
+    overlayBottomAccent: `<div style="position:absolute;bottom:0;left:0;width:100%;height:6px;background:repeating-linear-gradient(90deg,#1a3a6e 0px,#1a3a6e 24px,#f0ece0 24px,#f0ece0 48px,#c0152a 48px,#c0152a 72px);"></div>`,
+  },
+  karate: {
+    icon: '🐉',
+    blockTitle: 'FORGET ABOUT IT!',
+    lockoutTitle: 'BREAK THE WRIST, WALK AWAY!',
+    lockoutImage: 'break-the-wrist.png',
+    tagline: 'A warrior knows when to retreat.',
+    quote: '"A true champion is disciplined in all things."',
+    bg: '#0a0000', gold: '#ffd700', red: '#cc0000', blue: '#550000', text: '#fff8f0',
+    timerGlow: '0 0 0 1px #ffd700, 0 2px 12px rgba(204, 0, 0, 0.5)',
+    overlayBg: 'radial-gradient(circle at 50% 50%, rgba(5,0,0,0.25) 0%, rgba(5,0,0,0.1) 35%, transparent 65%), repeating-conic-gradient(from 0deg at 50% 50%, #1a0000 0deg 9deg, #2a0000 9deg 18deg)',
+    blockTitleColor: '#ffd700', blockTitleShadow: '3px 3px 0 #cc0000',
+    lockoutTitleColor: '#cc0000', lockoutTitleShadow: '3px 3px 0 #ffd700',
+    noUnblockColor: '#cc0000',
+    unblockBg: '#440000', unblockText: '#ffd700', unblockBorder: '#ffd700',
+    overlayImage: 'eagle.png',
+    overlayTopAccent: `<div style="position:absolute;top:10px;left:10px;right:10px;bottom:10px;border:1px solid rgba(255,215,0,0.25);pointer-events:none;"></div>`,
+    overlayBottomAccent: '',
+  },
+};
+
+const T = THEMES[ACTIVE_THEME];
+
 let isBlocked = false;
 let settings = null;
 let timerDisplay = null;
@@ -45,7 +88,7 @@ function isCurrentSiteBlocked() {
   return settings.websites.hasOwnProperty(hostname);
 }
 
-function createTimerDisplay() {
+function createTimerDisplay(customDuration = null) {
   console.log('Timer: createTimerDisplay called', {
     hasTimer: !!timerDisplay,
     isBlocked: isCurrentSiteBlocked(),
@@ -67,18 +110,19 @@ function createTimerDisplay() {
   timerDisplay.id = 'website-timer-display';
   timerDisplay.style.cssText = `
     position: fixed !important;
-    top: 20px !important;
-    right: 20px !important;
-    background: rgba(0, 0, 0, 0.8) !important;
-    color: white !important;
-    padding: 8px 12px !important;
-    border-radius: 6px !important;
-    font-family: Arial, sans-serif !important;
-    font-size: 14px !important;
-    font-weight: bold !important;
+    top: 16px !important;
+    right: 16px !important;
+    background: ${T.bg} !important;
+    color: ${T.gold} !important;
+    padding: 6px 12px !important;
+    border: 2px solid ${T.red} !important;
+    box-shadow: ${T.timerGlow} !important;
+    font-family: Impact, Arial, sans-serif !important;
+    font-size: 15px !important;
+    font-weight: normal !important;
+    letter-spacing: 3px !important;
+    text-transform: uppercase !important;
     z-index: 2147483647 !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
     pointer-events: none !important;
   `;
   
@@ -87,7 +131,7 @@ function createTimerDisplay() {
   // Try multiple attachment points for better persistence
   const attachPoint = document.body || document.documentElement;
   attachPoint.appendChild(timerDisplay);
-  startTimer();
+  startTimer(customDuration);
   
   // Watch for DOM changes that might remove our timer
   const observer = new MutationObserver(() => {
@@ -119,28 +163,30 @@ function createTimerDisplay() {
   }
 }
 
-function startTimer() {
+function startTimer(customDuration = null) {
   if (!timerDisplay) return;
-  
+
   startTime = Date.now();
-  const timeLimit = getTimeLimit();
+  const timeLimit = customDuration !== null ? customDuration : getTimeLimit();
   
   timerInterval = setInterval(() => {
     const elapsed = Math.floor((Date.now() - startTime) / 1000);
     const remaining = Math.max(0, timeLimit - elapsed);
     
     if (remaining > 0) {
-      timerDisplay.textContent = `${remaining}s left`;
-      
-      // Change color as time runs out
+      timerDisplay.textContent = `${remaining}S LEFT`;
+
       if (remaining <= 10) {
-        timerDisplay.style.background = 'rgba(220, 53, 69, 0.9)';
+        timerDisplay.style.background = T.red;
+        timerDisplay.style.color = T.text;
       } else if (remaining <= 20) {
-        timerDisplay.style.background = 'rgba(255, 193, 7, 0.9)';
+        timerDisplay.style.background = T.blue;
+        timerDisplay.style.color = T.gold;
       }
     } else {
-      timerDisplay.textContent = 'Time\'s up!';
-      timerDisplay.style.background = 'rgba(220, 53, 69, 0.9)';
+      timerDisplay.textContent = `TIME'S UP!`;
+      timerDisplay.style.background = T.red;
+      timerDisplay.style.color = T.text;
       clearInterval(timerInterval);
       
       // Fallback: If background script doesn't block us, block ourselves
@@ -180,17 +226,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Timer: Received message from background script:', request);
   
   if (request.action === 'block' && !isBlocked) {
-    console.log('Timer: Received block message, blocking site');
-    blockSite().then(() => {
+    if (request.isOneoff) {
+      console.log('Timer: Received one-off block message, going straight to lockout');
+      isBlocked = true;
+      removeTimerDisplay();
+      const siteName = window.location.hostname;
+      chrome.runtime.sendMessage({ action: 'startLockout', siteName }, () => {
+        showLockoutOverlay(siteName, 5);
+      });
       sendResponse({ success: true });
-    }).catch(error => {
-      console.error('Timer: Error in blockSite:', error);
-      sendResponse({ success: false, error: error.message });
-    });
-    return true; // Keep the message channel open for async response
+    } else {
+      console.log('Timer: Received block message, blocking site');
+      blockSite().then(() => {
+        sendResponse({ success: true });
+      }).catch(error => {
+        console.error('Timer: Error in blockSite:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+      return true; // Keep the message channel open for async response
+    }
   } else if (request.action === 'startTimer') {
     console.log('Timer: Received startTimer message');
-    createTimerDisplay();
+    createTimerDisplay(request.duration || null);
     sendResponse({ success: true });
   } else {
     console.log('Timer: Ignored message (already blocked or unknown action)');
@@ -244,7 +301,19 @@ async function blockSite() {
       return;
     }
     
-    // Show block overlay based on session count
+    // Second session expired → go straight to lockout screen
+    if (sessionCount >= 1) {
+      console.log('Timer: Second session expired, starting lockout and showing lockout screen');
+      chrome.runtime.sendMessage({ action: 'startLockout', siteName }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Timer: Error starting lockout:', chrome.runtime.lastError);
+        }
+        showLockoutOverlay(siteName, 5);
+      });
+      return;
+    }
+
+    // First session block
     console.log(`Timer: Showing block overlay for ${siteName} with sessionCount: ${sessionCount}`);
     showBlockOverlay(siteName, timeLimit, sessionCount);
     
@@ -269,61 +338,83 @@ function showBlockOverlay(siteName, timeLimit, sessionCount) {
     left: 0 !important;
     width: 100% !important;
     height: 100% !important;
-    background: rgb(0, 0, 0) !important;
-    color: white !important;
+    background: ${T.overlayBg} !important;
+    color: ${T.text} !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: center !important;
     align-items: center !important;
     font-family: Arial, sans-serif !important;
-    font-size: 24px !important;
     text-align: center !important;
     z-index: 2147483647 !important;
   `;
-  
+
   const unblockButtonHtml = isFirstSession ? `
     <button id="unblock-btn" style="
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
-      background: #1DA1F2;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    ">I need to do work-related tasks (unblock for this session)</button>
+      margin-top: 28px; padding: 16px 40px; font-size: 16px;
+      font-family: Impact, Arial, sans-serif; letter-spacing: 3px;
+      text-transform: uppercase; cursor: pointer;
+      background: ${T.unblockBg}; color: ${T.unblockText}; border: 2px solid ${T.unblockBorder};
+    ">★ I Need to Handle Something ★</button>
   ` : '';
-  
-  const sessionMessage = isFirstSession ? '' : '<p style="color: #ff6b6b !important; font-size: 18px !important;">No more unblocks available.<br>Take a break!</p>';
-  
+
+  const sessionMessage = isFirstSession ? '' : `
+    <p style="
+      color: ${T.noUnblockColor} !important;
+      font-family: Impact, Arial, sans-serif !important;
+      font-size: 18px !important; letter-spacing: 3px !important;
+      text-transform: uppercase !important; margin-top: 16px !important;
+    ">No more unblocks.<br>Stand down.</p>
+  `;
+
+  const textContent = `
+    <h2 style="
+      font-family: Impact, Arial, sans-serif !important; font-size: 64px !important;
+      letter-spacing: 8px !important; margin: 0 0 10px 0 !important;
+      text-transform: uppercase !important;
+      color: ${T.blockTitleColor} !important; text-shadow: ${T.blockTitleShadow} !important;
+    ">${T.blockTitle}</h2>
+
+    <p style="
+      color: ${T.gold} !important; font-family: Impact, Arial, sans-serif !important;
+      font-size: 18px !important; letter-spacing: 4px !important;
+      text-transform: uppercase !important; margin: 0 0 12px 0 !important; opacity: 0.85 !important;
+    ">${T.tagline}</p>
+
+    <p style="color: ${T.text} !important; font-size: 16px !important; margin: 4px 0 !important; letter-spacing: 1px !important; opacity: 0.7 !important;">
+      ${timeLimit} seconds on ${siteName}
+    </p>
+
+    ${sessionMessage}
+    ${unblockButtonHtml}
+  `;
+
+  const heroHtml = T.overlayImage ? (() => {
+    const imgUrl = chrome.runtime.getURL(T.overlayImage);
+    return `
+      <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+        <img src="${imgUrl}" style="
+          height: 64vh; object-fit: contain; flex-shrink: 0; pointer-events: none;
+        ">
+        <div style="margin-top: -22vh; position: relative; z-index: 1; text-align: center; padding: 0 40px; width: 100%;">
+          ${textContent}
+        </div>
+      </div>
+    `;
+  })() : `
+    <div style="font-size: 56px; margin-bottom: 10px; line-height: 1;">${T.icon}</div>
+    ${textContent}
+  `;
+
   overlay.innerHTML = `
-    <div style="color: white !important;">
-      <h2 style="color: white !important;">Time's up!</h2>
-      <p style="color: white !important;">You've spent ${timeLimit} seconds on ${siteName} this session.</p>
-      <p style="color: white !important;">Take a break and come back later.</p>
-      ${sessionMessage}
-      ${unblockButtonHtml}
-    </div>
+    ${T.overlayTopAccent}
+    ${heroHtml}
+    ${T.overlayBottomAccent}
   `;
   
   document.body.appendChild(overlay);
   console.log('Timer: Block overlay added to DOM', { sessionCount, isFirstSession });
-  
-  // If this is the second session block (no unblock button), start the 5-minute lockout
-  if (!isFirstSession) {
-    console.log('Timer: Second session block, starting 5-minute lockout');
-    chrome.runtime.sendMessage({ 
-      action: 'startLockout',
-      siteName: siteName 
-    }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error('Timer: Error sending startLockout message:', chrome.runtime.lastError);
-      } else {
-        console.log('Timer: StartLockout message sent successfully:', response);
-      }
-    });
-  }
-  
+
   // Add click handler for unblock button if it exists
   if (isFirstSession) {
     const unblockBtn = document.getElementById('unblock-btn');
@@ -368,25 +459,59 @@ function showLockoutOverlay(siteName, remainingMinutes) {
     left: 0 !important;
     width: 100% !important;
     height: 100% !important;
-    background: rgb(0, 0, 0) !important;
-    color: white !important;
+    background: ${T.overlayBg} !important;
+    color: ${T.text} !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: center !important;
     align-items: center !important;
     font-family: Arial, sans-serif !important;
-    font-size: 24px !important;
     text-align: center !important;
     z-index: 2147483647 !important;
   `;
-  
+
+  const lockoutTextContent = `
+    <h2 style="
+      font-family: Impact, Arial, sans-serif !important; font-size: 64px !important;
+      letter-spacing: 8px !important; margin: 0 0 10px 0 !important;
+      text-transform: uppercase !important;
+      color: ${T.blockTitleColor} !important; text-shadow: ${T.blockTitleShadow} !important;
+    ">${T.lockoutTitle}</h2>
+
+    <p id="lockout-countdown-display" style="
+      color: ${T.gold} !important; font-family: Impact, Arial, sans-serif !important;
+      font-size: 32px !important; letter-spacing: 5px !important;
+      text-transform: uppercase !important; margin: 12px 0 4px 0 !important;
+    ">${remainingMinutes} MIN LOCKOUT</p>
+
+    <p style="
+      color: ${T.text} !important; font-family: Impact, Arial, sans-serif !important;
+      font-size: 11px !important; letter-spacing: 4px !important;
+      text-transform: uppercase !important; margin: 10px 0 0 0 !important; opacity: 0.5 !important;
+    ">${T.quote}</p>
+  `;
+
+  const lockoutHeroHtml = T.lockoutImage ? (() => {
+    const imgUrl = chrome.runtime.getURL(T.lockoutImage);
+    return `
+      <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+        <img src="${imgUrl}" style="
+          height: 64vh; object-fit: contain; flex-shrink: 0; pointer-events: none;
+        ">
+        <div style="margin-top: -22vh; position: relative; z-index: 1; text-align: center; padding: 0 40px; width: 100%;">
+          ${lockoutTextContent}
+        </div>
+      </div>
+    `;
+  })() : `
+    <div style="font-size: 56px; margin-bottom: 10px; line-height: 1;">${T.icon}</div>
+    ${lockoutTextContent}
+  `;
+
   overlay.innerHTML = `
-    <div style="color: white !important;">
-      <h2 style="color: white !important;">🔒 Site Locked</h2>
-      <p style="color: white !important;">You completed both sessions for this site.</p>
-      <p style="color: #ff6b6b !important; font-size: 20px !important;">Lockout: ${remainingMinutes} minutes remaining</p>
-      <p style="color: white !important; font-size: 18px !important;">Take a real break and come back later!</p>
-    </div>
+    ${T.overlayTopAccent}
+    ${lockoutHeroHtml}
+    ${T.overlayBottomAccent}
   `;
   
   document.body.appendChild(overlay);
@@ -417,9 +542,9 @@ function showLockoutOverlay(siteName, remainingMinutes) {
             const remaining = Math.ceil((statusResponse.lockoutEnd - now) / 60000);
             
             if (remaining > 0) {
-              const countdownElement = overlay.querySelector('p[style*="color: #ff6b6b"]');
+              const countdownElement = overlay.querySelector('#lockout-countdown-display');
               if (countdownElement) {
-                countdownElement.textContent = `Lockout: ${remaining} minutes remaining`;
+                countdownElement.textContent = `${remaining} MIN LOCKOUT`;
               }
             }
           }

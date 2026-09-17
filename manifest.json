@@ -20,8 +20,22 @@
       "js": ["content.js"]
     }
   ],
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Rex Kwon Do Settings"
-  }
+    "default_title": "Rex Kwon Do Settings",
+    "default_icon": {
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["eagle.png", "rex.png", "break-the-wrist.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

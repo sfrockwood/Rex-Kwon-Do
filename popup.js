@@ -27,34 +27,88 @@ async function loadSettings() {
 function renderWebsitesList() {
   const container = document.getElementById('websites-list');
   container.innerHTML = '';
-  
+
   const websites = Object.entries(settings.websites);
-  
+
   if (websites.length === 0) {
     container.innerHTML = '<div class="empty-state">No websites configured</div>';
     return;
   }
-  
+
   websites.forEach(([url, time]) => {
     const item = document.createElement('div');
     item.className = 'website-item';
-    
+
+    const row = document.createElement('div');
+    row.className = 'website-item-row';
+
     const websiteInfo = document.createElement('div');
     websiteInfo.className = 'website-info';
     websiteInfo.innerHTML = `
       <div class="website-url">${url}</div>
       <div class="website-time">${time} seconds</div>
     `;
-    
+
+    const controls = document.createElement('div');
+    controls.className = 'website-controls';
+
+    const oneoffBtn = document.createElement('button');
+    oneoffBtn.className = 'oneoff-btn';
+    oneoffBtn.textContent = 'One-off';
+    oneoffBtn.addEventListener('click', () => toggleOneoffForm(item));
+
     const removeBtn = document.createElement('button');
     removeBtn.className = 'remove-btn';
     removeBtn.textContent = 'Remove';
     removeBtn.addEventListener('click', () => removeWebsite(url));
-    
-    item.appendChild(websiteInfo);
-    item.appendChild(removeBtn);
+
+    controls.appendChild(oneoffBtn);
+    controls.appendChild(removeBtn);
+    row.appendChild(websiteInfo);
+    row.appendChild(controls);
+
+    const oneoffForm = document.createElement('div');
+    oneoffForm.className = 'oneoff-form hidden';
+    oneoffForm.innerHTML = `
+      <input type="number" class="oneoff-minutes" placeholder="minutes" min="1" max="120">
+      <button class="oneoff-start-btn">Start one-off session</button>
+    `;
+    oneoffForm.querySelector('.oneoff-start-btn').addEventListener('click', () => {
+      const minutes = parseInt(oneoffForm.querySelector('.oneoff-minutes').value);
+      startOneoffSession(url, minutes, item);
+    });
+
+    item.appendChild(row);
+    item.appendChild(oneoffForm);
     container.appendChild(item);
   });
+}
+
+function toggleOneoffForm(item) {
+  const form = item.querySelector('.oneoff-form');
+  form.classList.toggle('hidden');
+  if (!form.classList.contains('hidden')) {
+    form.querySelector('.oneoff-minutes').focus();
+  }
+}
+
+async function startOneoffSession(url, minutes, item) {
+  if (!minutes || minutes < 1) {
+    showStatus('Please enter a valid number of minutes', 'error');
+    return;
+  }
+
+  const key = `oneoff_${url}`;
+  const duration = minutes * 60; // convert to seconds
+
+  try {
+    await chrome.storage.session.set({ [key]: { duration } });
+    item.querySelector('.oneoff-form').classList.add('hidden');
+    showStatus(`One-off started: ${minutes} min on ${url}`, 'success');
+  } catch (error) {
+    console.error('Error starting one-off session:', error);
+    showStatus('Error starting one-off session', 'error');
+  }
 }
 
 function addWebsite() {
@@ -105,7 +159,7 @@ async function saveSettings() {
 function showStatus(message, type) {
   const status = document.getElementById('status');
   status.textContent = message;
-  status.style.color = type === 'error' ? '#dc3545' : '#28a745';
+  status.style.color = type === 'error' ? '#c0152a' : '#f0a500';
   
   setTimeout(() => {
     status.textContent = '';

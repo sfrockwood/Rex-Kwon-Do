@@ -41,6 +41,10 @@ body {
 
 /* ── Header ── */
 
+.header-bg-img {
+  display: none;
+}
+
 .header {
   background: #1a3a6e;
   padding: 14px 16px 16px;

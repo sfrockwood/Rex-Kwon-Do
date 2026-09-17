@@ -2,38 +2,52 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <link rel="stylesheet" href="popup.css">
+  <!-- Switch theme: popup-americana.css | popup-karate.css -->
+  <link rel="stylesheet" href="popup-karate.css">
 </head>
 <body>
   <div class="container">
-    <h2>Website Timer Blocker</h2>
-    
-    <div class="section">
-      <h3>Blocked Websites</h3>
-      <div id="websites-list"></div>
-      <div class="add-website">
-        <input type="text" id="new-website" placeholder="example.com">
-        <input type="number" id="new-time" placeholder="30" min="1" max="3600">
-        <span class="time-label">seconds</span>
-        <button id="add-website">Add</button>
+    <div class="stripe-bar"></div>
+
+    <div class="header">
+      <img src="rex.png" class="header-bg-img">
+      <!-- americana: 🦅 -->
+      <div class="eagle americana-only">🦅</div>
+      <h2>REX KWAN DON'T</h2>
+      <!-- americana: ★ DISCIPLINE · FOCUS · AMERICA ★ -->
+      <div class="tagline">NO MORE FLYING SOLO</div>
+    </div>
+
+    <div class="content-area">
+      <div class="section">
+        <h3>★ Blocked Sites</h3>
+        <div id="websites-list"></div>
+        <div class="add-website">
+          <input type="text" id="new-website" placeholder="example.com">
+          <input type="number" id="new-time" placeholder="30" min="1" max="3600">
+          <span class="time-label">sec</span>
+          <button id="add-website">Add</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>★ Default Limit</h3>
+        <div class="setting">
+          <label for="default-time">Time limit:</label>
+          <input type="number" id="default-time" min="1" max="3600" value="30">
+          <span class="time-label">seconds</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <button id="save-settings" class="save-btn">★ Save Settings ★</button>
+        <div id="status" class="status"></div>
       </div>
     </div>
-    
-    <div class="section">
-      <h3>Default Settings</h3>
-      <div class="setting">
-        <label for="default-time">Default time limit:</label>
-        <input type="number" id="default-time" min="1" max="3600" value="30">
-        <span>seconds</span>
-      </div>
-    </div>
-    
-    <div class="section">
-      <button id="save-settings" class="save-btn">Save Settings</button>
-      <div id="status" class="status"></div>
-    </div>
+
+    <div class="footer-bar"></div>
   </div>
-  
+
   <script src="popup.js"></script>
 </body>
 </html>
