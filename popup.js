@@ -14,7 +14,7 @@ async function loadSettings() {
   try {
     const result = await chrome.storage.sync.get(['blockerSettings']);
     if (result.blockerSettings) {
-      settings = result.blockerSettings;
+      settings = RexRules.normalizeSettings(result.blockerSettings);
     }
     
     document.getElementById('default-time').value = settings.defaultTime;
@@ -74,7 +74,7 @@ function renderWebsitesList() {
       <button class="oneoff-start-btn">Start one-off session</button>
     `;
     oneoffForm.querySelector('.oneoff-start-btn').addEventListener('click', () => {
-      const minutes = parseInt(oneoffForm.querySelector('.oneoff-minutes').value);
+      const minutes = oneoffForm.querySelector('.oneoff-minutes').value;
       startOneoffSession(url, minutes, item);
     });
 
@@ -93,21 +93,28 @@ function toggleOneoffForm(item) {
 }
 
 async function startOneoffSession(url, minutes, item) {
-  if (!minutes || minutes < 1) {
-    showStatus('Please enter a valid number of minutes', 'error');
+  const validMinutes = RexRules.parseInteger(minutes, 1, 120);
+  if (validMinutes === null) {
+    showStatus('Enter a whole number from 1 to 120', 'error');
     return;
   }
 
-  const key = `oneoff_${url}`;
-  const duration = minutes * 60; // convert to seconds
-
   try {
-    await chrome.storage.session.set({ [key]: { duration } });
+    const response = await chrome.runtime.sendMessage({
+      action: 'startOneoff',
+      siteName: url,
+      duration: validMinutes * 60,
+    });
+    if (!response?.success) throw new Error(response?.error || 'Unable to start one-off session');
+
     item.querySelector('.oneoff-form').classList.add('hidden');
-    showStatus(`One-off started: ${minutes} min on ${url}`, 'success');
+    showStatus(
+      response.started ? `One-off started: ${validMinutes} min on ${url}` : `One-off ready for ${url}`,
+      'success'
+    );
   } catch (error) {
     console.error('Error starting one-off session:', error);
-    showStatus('Error starting one-off session', 'error');
+    showStatus(error.message || 'Error starting one-off session', 'error');
   }
 }
 
@@ -115,18 +122,29 @@ function addWebsite() {
   const urlInput = document.getElementById('new-website');
   const timeInput = document.getElementById('new-time');
   
-  const url = urlInput.value.trim();
-  const time = parseInt(timeInput.value) || settings.defaultTime;
+  const input = urlInput.value.trim();
   
-  if (!url) {
+  if (!input) {
     showStatus('Please enter a website URL', 'error');
     return;
   }
-  
-  // Clean up URL (remove protocol, www, trailing slash)
-  const cleanUrl = url.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
-  
-  settings.websites[cleanUrl] = time;
+
+  const hostname = RexRules.hostnameFromInput(input);
+  if (!hostname) {
+    showStatus('Enter a hostname only, such as example.com', 'error');
+    return;
+  }
+
+  const rawTime = timeInput.value.trim();
+  const time = rawTime
+    ? RexRules.parseInteger(rawTime, RexRules.MIN_TIME, RexRules.MAX_TIME)
+    : settings.defaultTime;
+  if (time === null) {
+    showStatus('Time must be a whole number from 1 to 3600', 'error');
+    return;
+  }
+
+  settings.websites[hostname] = time;
   
   urlInput.value = '';
   timeInput.value = '';
@@ -142,14 +160,24 @@ function removeWebsite(url) {
 }
 
 async function saveSettings() {
-  settings.defaultTime = parseInt(document.getElementById('default-time').value) || 30;
+  const defaultTime = RexRules.parseInteger(
+    document.getElementById('default-time').value,
+    RexRules.MIN_TIME,
+    RexRules.MAX_TIME
+  );
+  if (defaultTime === null) {
+    showStatus('Default must be a whole number from 1 to 3600', 'error');
+    return;
+  }
+  settings.defaultTime = defaultTime;
   
   try {
     await chrome.storage.sync.set({ blockerSettings: settings });
     showStatus('Settings saved successfully!', 'success');
     
     // Notify background script of settings change
-    chrome.runtime.sendMessage({ action: 'settingsUpdated' });
+    const response = await chrome.runtime.sendMessage({ action: 'settingsUpdated' });
+    if (!response?.success) throw new Error(response?.error || 'Unable to apply settings');
   } catch (error) {
     console.error('Error saving settings:', error);
     showStatus('Error saving settings', 'error');
@@ -165,4 +193,3 @@ function showStatus(message, type) {
     status.textContent = '';
   }, 3000);
 }
-

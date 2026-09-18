@@ -1,0 +1,7 @@
+{
+  "name": "rex-kwon-do",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}

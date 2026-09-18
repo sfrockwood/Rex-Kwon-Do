@@ -9,6 +9,7 @@ A Chrome extension that blocks websites after configurable time limits per sessi
 - 🔒 **5-minute lockout** - After completing both sessions, sites are locked for 5 minutes
 - 📊 **Live timer display** - See how much time you have left on blocked sites
 - ⚙️ **Easy configuration** - Simple popup interface to manage blocked websites
+- ⏳ **One-off sessions** - Replace the active site's timer once, then go directly to lockout
 
 ## Installation
 
@@ -28,8 +29,14 @@ A Chrome extension that blocks websites after configurable time limits per sessi
 5. When you visit a blocked website, a timer will appear showing time remaining
 6. After the time limit expires:
    - **First session**: You can unblock once for work-related tasks
-   - **Second session**: No unblock available - take a break!
+   - **Second session**: Expiration starts the lockout immediately
    - **After second session**: 5-minute lockout period
+
+Timers use persisted deadlines, so reloading does not reset them. Leaving a configured website
+clears that tab's timer instead of allowing it to block a different website.
+
+One-off sessions start immediately when that website is active, or are saved for its next visit.
+They cannot bypass an active lockout and go directly to a new 5-minute lockout when they expire.
 
 ## Default Settings
 
@@ -39,6 +46,7 @@ A Chrome extension that blocks websites after configurable time limits per sessi
 ## Files
 
 - `manifest.json` - Extension configuration
+- `shared.js` - Shared hostname and duration validation
 - `background.js` - Service worker handling timers and blocking logic
 - `content.js` - Content script for timer display and blocking overlays
 - `popup.html/js/css` - Settings popup interface
@@ -47,7 +55,12 @@ A Chrome extension that blocks websites after configurable time limits per sessi
 
 This extension uses Chrome Extension Manifest V3.
 
+Run the automated state-machine and validation tests with:
+
+```bash
+npm test
+```
+
 ## License
 
 MIT
-
